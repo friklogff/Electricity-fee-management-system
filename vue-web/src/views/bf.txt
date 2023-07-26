@@ -1,0 +1,216 @@
+
+<!-- UserProfile.vue -->
+<template>
+  <div>
+    <!-- 显示用户信息,调用getProfile接口获取 -->
+    <p>姓名: {{ user.RealName }}</p>  
+    <p>手机号: {{ user.Phone }}</p>
+    <p>ID: {{ user.IDCard }}</p>
+    <p>邮箱: {{ user.Email }}</p>  
+    <p>地址: {{ user.Address }}</p>
+    <p>用电类型: {{ user.ElecType }}</p>
+  </div>
+  
+  <button @click="logout">登出</button>
+  <button @click="goUpdate">修改信息</button>  
+</template>
+<script>
+import { getProfile, logout } from '@/api'
+export default {
+  data() { 
+    return {
+      user: {}
+    }
+  },
+  created() {
+    console.log('调用getProfile接口获取用户信息')
+    this.getProfile()  
+  },
+  methods: {
+    // 获取用户信息
+    getProfile() {       
+      getProfile()
+        .then(res => {
+          console.log('获取用户信息成功!响应内容:', res)  
+          this.user = res.data[0]    
+          console.log('user对象填充成功:', this.user)
+        })
+        .catch(err => {
+          console.log('获取用户信息失败!错误信息:', err.message)  
+          this.$router.push('/')
+
+        })
+    },
+    // 登出 
+    logout() {   
+    logout() 
+      .then(() => {  
+        this.$router.push('/')
+        localStorage.removeItem('access_token')
+      })
+      .catch(err => {
+        if (err.message === 'No access_token found.') {
+          console.log(err.message)  
+          return 
+        }
+        console.log(err.message)
+      })
+  },
+    // 跳转至修改用户信息界面
+    goUpdate() {
+      const access_token = localStorage.getItem('access_token')
+      if (!access_token) {
+        console.log('No access token found.')
+        return
+      }
+      this.$router.push('/profile/update') 
+    }   
+  }  
+}
+</script>
+
+
+
+
+
+
+UserRegister.vue
+<template>
+  <!-- 用户注册页面 -->
+  <el-form :model="data" :rules="rules" ref="form" label-width="100px">
+    <el-form-item label="Username" prop="Username">
+      <el-input v-model="data.Username"></el-input>
+    </el-form-item> 
+    <el-form-item label="Password" prop="Password">
+      <el-input type="password" v-model="data.Password"></el-input>
+    </el-form-item>
+    <el-form-item label="PasswordConfirm" prop="PasswordConfirm">
+      <el-input type="password" v-model="data.PasswordConfirm"></el-input>
+    </el-form-item>
+    <el-form-item label="IDCard" prop="IDCard">    
+      <el-input v-model="data.IDCard"></el-input>
+    </el-form-item>
+    <el-form-item>
+      <el-button type="primary" @click="register('form')">注册</el-button>
+      <el-button>取消</el-button>
+    </el-form-item>
+  </el-form>
+</template>
+
+
+<script>
+// 导入axios和注册接口  
+import { register } from '@/api'   
+
+export default {
+  data() {     
+    return {     
+      // 用户名、密码、确认密码、身份证号     
+      data: {
+        Username: '',      
+        Password: '',       
+        PasswordConfirm: '',
+        IDCard: ''    
+      },
+      // 表单验证规则     
+      rules: {
+        // 用户名必填         
+        Username: [          
+          { required: true, message: '请输入用户名', trigger: 'blur' }       
+        ],
+        // 密码必填、6位以上          
+        Password: [           
+          { required: true, message: '请输入密码', trigger: 'blur' },          
+          { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }         
+        ],         
+        // 确认密码必填、与密码一致        
+        PasswordConfirm: [         
+          { required: true, message: '请再次输入密码', trigger: 'blur' },   
+          { validator: this.confirmPassword, trigger: 'blur' }          
+        ],          
+        // 身份证号必填           
+        IDCard: [            
+          { required: true, message: '请输入身份证号', trigger: 'blur' },   
+          { min: 18,max: 18, message: '身份证号为18位', trigger: 'blur' }         
+      
+        ]    
+      }   
+    }
+  },
+  methods: {
+    // 确认密码自定义校验方法
+    confirmPassword(rule, value, callback) {  
+      console.log('调用confirmPassword方法,Password值为:', this.data.Password) 
+      console.log('调用confirmPassword方法,PasswordConfirm值为:', value)   
+      if (value !== this.data.Password) {
+        callback(new Error('两次输入的密码不一致!'))  
+        console.log('两次密码输入不一致!')  
+      } else {   
+        callback()  
+        console.log('两次密码输入一致!')  
+      }  
+    },
+    // 注册方法,调用axios发起注册请求
+    // register(formName) {    
+    //   console.log('调用register方法,formName值为:', formName)    
+    //   this.$refs[formName].validate((valid) => { 
+    //     if (valid) {     
+    //       console.log('表单校验通过,用户名为:', this.data.Username)    
+    //       const params = {      
+    //         Username: this.data.Username,      
+    //         Password: this.data.Password,       
+    //         IDCard: this.data.IDCard     
+    //       }   
+    //       console.log('注册接口请求参数为:', params) 
+    //       register(params)   
+    //         .then(res => {    
+    //           console.log('注册成功,结果为:', res.data.errmsg)  
+    //           this.$message.success(res.data.errmsg)  
+    //           this.$router.push('/login')  
+    //         })   
+    //         .catch(err => {    
+    //           console.log('注册失败,错误信息为:', err.response.data.errmsg)  
+    //           this.$message.error(err.response.data.errmsg)  
+    //         })     
+    //     } else {     
+    //       this.$message.error('注册信息不完整!')  
+    //       console.log('表单校验未通过,显示提示信息!')  
+    //       return false    
+    //     }   
+    //  })  
+    // }
+    register(formName) {   
+    this.$refs[formName].validate((valid) => { 
+      if (valid) {    
+        const params = {      
+          Username: this.data.Username,      
+          Password: this.data.Password,       
+          IDCard: this.data.IDCard    
+        } 
+      register(params)   
+        .then(res => {  
+          if (res.data.errmsg == '用户注册成功') {
+            this.$message.success(res.data.errmsg)
+            this.$router.push("/login");
+
+          } else {
+            console.log('接受到结果为:', res.data.errmsg) 
+          this.$message.error(res.data.errmsg) 
+          }     
+        })
+        .catch(err => {
+          console.log('接受到错误结果为:', err) 
+
+        })     
+     }
+      else {    
+       this.$message.error('注册信息不完整!')    
+       return false   
+     }  
+   })
+  }
+
+
+  }
+}
+</script>
